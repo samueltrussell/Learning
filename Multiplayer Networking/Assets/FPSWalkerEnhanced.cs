@@ -1,9 +1,11 @@
 ﻿using UnityEngine;
+using UnityEngine.Networking;
 using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
-public class FPSWalkerEnhanced : MonoBehaviour
+public class FPSWalkerEnhanced : NetworkBehaviour
 {
+	public GameObject overHeadCam;
 
     public float walkSpeed = 6.0f;
 
@@ -53,8 +55,22 @@ public class FPSWalkerEnhanced : MonoBehaviour
     private bool playerControl = false;
     private int jumpTimer;
 
-    void Start()
+	public override void OnStartLocalPlayer ()
+	{
+		GetComponentInChildren<MeshRenderer> ().material.color = Color.red;
+	}
+
+	void Start()
     {
+		//#if UNITY_ANDROID && !UNITY_EDITOR
+		if (isServer) {
+			overHeadCam = GameObject.Find ("OC");
+			overHeadCam.SetActive (false);
+			GetComponentInChildren<NavMeshAgent> ().enabled = false;
+		} else {
+			GetComponentInChildren<CapsuleCollider> ().enabled = false;
+		}
+
         controller = GetComponent<CharacterController>();
         myTransform = transform;
         speed = walkSpeed;
@@ -65,6 +81,9 @@ public class FPSWalkerEnhanced : MonoBehaviour
 
     void FixedUpdate()
     {
+		if (!isLocalPlayer)
+			return;
+
         float inputX = Input.GetAxis("Horizontal");
         float inputY = Input.GetAxis("Vertical");
         // If both horizontal and vertical are used simultaneously, limit speed (if allowed), so the total doesn't exceed normal move speed
@@ -154,11 +173,32 @@ public class FPSWalkerEnhanced : MonoBehaviour
 
     void Update()
     {
+		if (!isLocalPlayer)
+			return;
+
+		if (!isServer) {
+			if (Input.GetMouseButtonDown (0)) {
+				getPosition ();
+				Debug.Log("Got Click Event");
+			}
+		}
+
         // If the run button is set to toggle, then switch between walk/run speed. (We use Update for this...
         // FixedUpdate is a poor place to use GetButtonDown, since it doesn't necessarily run every frame and can miss the event)
         if (toggleRun && grounded && Input.GetButtonDown("Run"))
             speed = (speed == walkSpeed ? runSpeed : walkSpeed);
     }
+
+	void getPosition()
+	{
+		Ray camRay = Camera.main.ScreenPointToRay (Input.mousePosition);
+		RaycastHit floorHit;
+
+		if (Physics.Raycast(camRay,out floorHit, 100f))
+		{
+			GetComponentInChildren<NavMeshAgent>().SetDestination(floorHit.point);
+		}
+	}
 
     // Store point that we're in contact with for use in FixedUpdate if needed
     void OnControllerColliderHit(ControllerColliderHit hit)

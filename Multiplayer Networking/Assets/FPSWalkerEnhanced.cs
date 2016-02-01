@@ -63,13 +63,20 @@ public class FPSWalkerEnhanced : NetworkBehaviour
 	void Start()
     {
 		//#if UNITY_ANDROID && !UNITY_EDITOR
-		if (isServer) {
+		if (isLocalPlayer && isServer) {
 			overHeadCam = GameObject.Find ("OC");
 			overHeadCam.SetActive (false);
 			GetComponentInChildren<NavMeshAgent> ().enabled = false;
 		} else {
 			GetComponentInChildren<CapsuleCollider> ().enabled = false;
 		}
+
+        if (!isLocalPlayer)
+        {
+            GetComponentInChildren<Camera>().enabled = false;
+        }
+        
+
 
         controller = GetComponent<CharacterController>();
         myTransform = transform;

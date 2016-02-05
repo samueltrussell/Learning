@@ -62,15 +62,45 @@ public class CustomNetworkHUD : MonoBehaviour{
 
     public void SetUpHost()
     {
+        manager.StartHost();
 
+        ConnectionPanel.SetActive(false);
+        RunningPanel.SetActive(true);
+
+        SceneManager.LoadScene("Main");
+        ClientScene.Ready(manager.client.connection);
     }
 
     public void JoinAsClient()
     {
 
-        //Debug.Log(Network.Connect(hostIpField.text, 7777));
+        StartCoroutine(ConnectClient());
+
+        ////Debug.Log(Network.Connect(hostIpField.text, 7777));
+        //manager.networkAddress = hostIpField.text;
+        //manager.StartClient();
+
+
+        //if (manager.client.connection != null)
+        //{
+        //    ConnectionPanel.SetActive(false);
+        //    RunningPanel.SetActive(true);
+
+        //    SceneManager.LoadScene("Main");
+        //    ClientScene.Ready(manager.client.connection);
+        //}
+        //else
+        //{
+        //    ErrorText.text = "Error Connecting to " + manager.networkAddress + "!";
+        //}
+
+    }
+
+    IEnumerator ConnectClient()
+    {
+        ////Debug.Log(Network.Connect(hostIpField.text, 7777));
         manager.networkAddress = hostIpField.text;
-        manager.StartClient();
+        yield return manager.StartClient();
 
 
         if (manager.client.connection != null)
@@ -80,17 +110,25 @@ public class CustomNetworkHUD : MonoBehaviour{
 
             SceneManager.LoadScene("Main");
             ClientScene.Ready(manager.client.connection);
+          
         }
         else
         {
-            ErrorText.text = "Connection Error!";
+            ErrorText.text = "Error Connecting to " + manager.networkAddress + "!";
         }
-
     }
 
     public void ReturnToMenu()
     {
-        manager.StopClient();
+        if(manager.client.connection.isConnected)
+        {
+            manager.StopClient();
+        }
+        else
+        {
+            manager.StopHost();
+        }
+
         SceneManager.LoadScene("Menu");
         RunningPanel.SetActive(false);
         ConnectionPanel.SetActive(true);

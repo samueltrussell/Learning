@@ -1,8 +1,11 @@
 package com.example.u0468223.sunshine;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -41,6 +44,12 @@ public class ForecastFragment extends Fragment {
     }
 
     @Override
+    public void onStart() {
+        updateWeather();
+        super.onStart();
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState){
         setHasOptionsMenu(true);
         super.onCreate(savedInstanceState);
@@ -57,17 +66,8 @@ public class ForecastFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main,container,false);
 
-        ArrayList<String> forecast = new ArrayList<>();
-        forecast.add("Today-Sunny-88/63");
-        forecast.add("Tomorrow-Foggy-70/46");
-        forecast.add("Weds-Cloudy-72/63");
-        forecast.add("Thurs-Asteroids-75/65");
-        forecast.add("Friday-Heavy Rain-65/56");
-        forecast.add("Sat-HELP TRAPPED IN WEATHERSTATION-60/51");
-        forecast.add("Sun-Sunny-80/68");
-
-        mForecastAdapter = new ArrayAdapter<>(getActivity(),
-                R.layout.list_item_forecast,R.id.list_item_forecast_textview,forecast);
+        mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast,
+                R.id.list_item_forecast_textview, new ArrayList());
 
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
         listView.setAdapter(mForecastAdapter);
@@ -76,9 +76,14 @@ public class ForecastFragment extends Fragment {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final String message = mForecastAdapter.getItem(position).toString();
+                String message = "launching detail activity";
                 Toast toast = Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT);
                 toast.show();
+
+                message = mForecastAdapter.getItem(position).toString();
+                Intent detailIntent = new Intent(getActivity(), DetailActivity.class);
+                detailIntent.putExtra(Intent.EXTRA_TEXT, message);
+                startActivity(detailIntent);
             }
         });
 
@@ -89,11 +94,24 @@ public class ForecastFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item){
         switch (item.getItemId()){
             case R.id.action_refresh:
-                new FetchWeatherTask().execute(new String[]{"SaltLake","14"});
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                String location = prefs.getString(getString(R.string.pref_location_key),
+                        getString(R.string.pref_location_default));
+                new FetchWeatherTask().execute(new String[]{location,"14"});
                 break;
+            case R.id.action_settings:
+                Intent settingsIntent = new Intent(getActivity(), SettingsActivity.class);
+                startActivity(settingsIntent);
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void updateWeather(){
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String location = prefs.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+        new FetchWeatherTask().execute(new String[]{location,"14"});
     }
 
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
